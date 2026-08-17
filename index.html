@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Mafia Doctor — Trust No One</title>
+<style>
+  :root{
+    --ink:#f3f1ea;
+    --ink-dim:#b9b3c9;
+    --ink-faint:#7a7492;
+    --bg-0:#07060d;
+    --panel:rgba(15,12,26,0.82);
+    --panel-solid:#120f22;
+    --panel-border:rgba(155,140,255,0.18);
+    --purple:#8b5cf6;
+    --purple-2:#5b32c9;
+    --mafia:#e6394d;
+    --mafia-dim:#7a2230;
+    --doctor:#33c17a;
+    --doctor-dim:#1f6b46;
+    --civilian:#4aa3ff;
+    --civilian-dim:#295f96;
+    --gold:#f2c675;
+    --radius:22px;
+    --radius-sm:14px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    min-height:100dvh;
+    background:var(--bg-0);
+    color:var(--ink);
+    font-family:'Palatino Linotype','Iowan Old Style',Georgia,'Times New Roman',serif;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ---------- Background layer (crossfades between cropped artwork per screen) ---------- */
+  #bgLayer{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background-size:cover;
+    background-position:center;
+    transition:opacity .28s ease;
+    filter:saturate(1.08) contrast(1.03);
+  }
+  #bgScrim{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(7,6,13,0.15), rgba(7,6,13,0.55) 55%, rgba(7,6,13,0.92) 100%),
+      linear-gradient(180deg, rgba(7,6,13,0.35) 0%, rgba(7,6,13,0.55) 45%, rgba(7,6,13,0.88) 100%);
+    transition:background .3s ease;
+    pointer-events:none;
+  }
+  #bgScrim.tint-mafia{background:
+      radial-gradient(ellipse at 50% 0%, rgba(70,10,18,0.20), rgba(20,4,8,0.62) 55%, rgba(7,4,6,0.93) 100%),
+      linear-gradient(180deg, rgba(30,4,8,0.35) 0%, rgba(15,3,5,0.6) 45%, rgba(6,2,3,0.9) 100%);}
+  #bgScrim.tint-doctor{background:
+      radial-gradient(ellipse at 50% 0%, rgba(10,60,38,0.20), rgba(4,20,14,0.62) 55%, rgba(4,10,8,0.93) 100%),
+      linear-gradient(180deg, rgba(4,30,20,0.35) 0%, rgba(3,15,10,0.6) 45%, rgba(2,8,6,0.9) 100%);}
+  #bgScrim.tint-civilian{background:
+      radial-gradient(ellipse at 50% 0%, rgba(10,45,80,0.20), rgba(4,16,30,0.62) 55%, rgba(3,8,14,0.93) 100%),
+      linear-gradient(180deg, rgba(4,20,40,0.35) 0%, rgba(3,12,24,0.6) 45%, rgba(2,6,12,0.9) 100%);}
+
+  .stage{
+    position:relative;
+    z-index:2;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px 34px;
+  }
+
+  .wrap{ width:100%; max-width:480px; }
+
+  .hidden{display:none !important;}
+
+  .card{
+    background:var(--panel);
+    backdrop-filter:blur(6px);
+    border:1px solid var(--panel-border);
+    border-radius:var(--radius);
+    padding:28px 22px;
+    box-shadow:0 24px 70px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+    animation:rise .4s ease both;
+  }
+  @keyframes rise{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- Typography ---------- */
+  h1,h2,h3{ margin:0; font-family:'Palatino Linotype','Iowan Old Style',Georgia,serif; }
+  .brand-title{
+    text-align:center;
+    font-size:2.6rem;
+    font-weight:700;
+    letter-spacing:2px;
+    line-height:1.05;
+    text-transform:uppercase;
+    color:#f6f3ff;
+    text-shadow:0 0 24px rgba(139,92,246,0.55), 0 2px 0 rgba(0,0,0,0.4);
+  }
+  .brand-title .doctor-word{
+    display:block;
+    color:var(--civilian);
+    text-shadow:0 0 24px rgba(74,163,255,0.55), 0 2px 0 rgba(0,0,0,0.4);
+    margin-top:2px;
+  }
+  .tagline{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:0.92rem;
+    font-style:italic;
+    margin-top:10px;
+    letter-spacing:0.3px;
+  }
+  .tagline b{ color:var(--civilian); font-style:normal; }
+
+  .screen-title{
+    font-size:1.4rem;
+    font-weight:700;
+    text-align:center;
+    letter-spacing:0.4px;
+  }
+  .screen-sub{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:0.88rem;
+    margin-top:6px;
+    line-height:1.4;
+  }
+
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.68rem;
+    font-weight:700;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:10px;
+  }
+  .eyebrow::before, .eyebrow::after{
+    content:'';
+    height:1px;
+    width:26px;
+    background:linear-gradient(90deg, transparent, rgba(242,198,117,0.6));
+  }
+  .eyebrow::after{ background:linear-gradient(90deg, rgba(242,198,117,0.6), transparent); }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:16px 18px;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:1rem;
+    font-weight:700;
+    letter-spacing:0.3px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    transition:transform .12s ease, filter .12s ease, opacity .12s ease, box-shadow .12s ease;
+    color:#fff;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .btn:not(:disabled):hover{ filter:brightness(1.08); }
+
+  .btn-purple{ background:linear-gradient(90deg, var(--purple-2), var(--purple)); box-shadow:0 10px 30px rgba(139,92,246,0.35); }
+  .btn-mafia{ background:linear-gradient(90deg, #9c1f30, var(--mafia)); box-shadow:0 10px 30px rgba(230,57,77,0.32); }
+  .btn-doctor{ background:linear-gradient(90deg, #16824f, var(--doctor)); box-shadow:0 10px 30px rgba(51,193,122,0.3); }
+  .btn-civilian{ background:linear-gradient(90deg, #1c66ad, var(--civilian)); box-shadow:0 10px 30px rgba(74,163,255,0.3); }
+  .btn-gold{ background:linear-gradient(90deg, #b9852f, var(--gold)); color:#241a04; box-shadow:0 10px 30px rgba(242,198,117,0.3); }
+  .btn-ghost{
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--panel-border);
+    box-shadow:none;
+  }
+  .btn-row{ display:flex; gap:10px; margin-top:10px; }
+  .btn-sm{ padding:11px 14px; font-size:0.86rem; }
+
+  .link-btn{
+    background:none; border:none; color:var(--ink-faint);
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.82rem; text-decoration:underline;
+    cursor:pointer; display:block; margin:14px auto 0; text-align:center;
+  }
+
+  /* ---------- Top bar (gear / back) ---------- */
+  .topbar{
+    position:fixed;
+    top:18px; left:0; right:0;
+    z-index:5;
+    display:flex;
+    justify-content:space-between;
+    padding:0 18px;
+    max-width:480px;
+    margin:0 auto;
+    pointer-events:none;
+  }
+  .topbar > *{ pointer-events:auto; }
+  .icon-btn{
+    width:42px; height:42px;
+    border-radius:50%;
+    background:rgba(15,12,26,0.7);
+    border:1px solid var(--panel-border);
+    backdrop-filter:blur(4px);
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.15rem;
+    cursor:pointer;
+  }
+
+  /* ---------- Setup / stepper ---------- */
+  .field-block{ margin-bottom:18px; }
+  .field-label{
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.78rem; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:10px; display:block;
+  }
+  .stepper{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--panel-border);
+    border-radius:14px;
+    padding:6px;
+  }
+  .stepper button{
+    width:44px; height:44px; border-radius:10px;
+    border:none; background:rgba(255,255,255,0.06); color:#fff;
+    font-size:1.4rem; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stepper button:active{ transform:scale(0.92); }
+  .stepper .val{ font-size:1.5rem; font-weight:700; font-family:ui-sans-serif,system-ui,sans-serif; }
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--panel-border);
+    border-radius:14px;
+    padding:14px 16px;
+  }
+  .toggle-row .lbl{ font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.92rem; font-weight:600; }
+  .toggle-row .sub{ font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.74rem; color:var(--ink-faint); margin-top:2px; }
+  .switch{ position:relative; width:46px; height:26px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .track{
+    position:absolute; inset:0; background:rgba(255,255,255,0.15); border-radius:999px; cursor:pointer; transition:background .15s ease;
+  }
+  .switch .track::before{
+    content:''; position:absolute; width:20px; height:20px; left:3px; top:3px;
+    background:#fff; border-radius:50%; transition:transform .15s ease;
+  }
+  .switch input:checked + .track{ background:linear-gradient(90deg,var(--purple-2),var(--purple)); }
+  .switch input:checked + .track::before{ transform:translateX(20px); }
+
+  .auto-note{
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.78rem; color:var(--ink-faint); text-align:center; margin-top:10px;
+  }
+  .config-error{
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.8rem; color:var(--mafia); text-align:center; margin-top:10px; min-height:1.1em;
+  }
+
+  /* ---------- Name inputs ---------- */
+  .name-list{ display:flex; flex-direction:column; gap:10px; margin:16px 0 20px; max-height:48vh; overflow-y:auto; padding-right:2px; }
+  .name-row{ display:flex; align-items:center; gap:10px; }
+  .name-row .idx{
+    flex:none; width:30px; height:30px; border-radius:50%;
+    background:rgba(255,255,255,0.06); border:1px solid var(--panel-border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.78rem; font-weight:700; color:var(--ink-dim);
+  }
+  .name-row input{
+    flex:1; background:rgba(255,255,255,0.04); border:1px solid var(--panel-border);
+    border-radius:12px; padding:12px 14px; color:var(--ink); font-size:0.95rem;
+    font-family:ui-sans-serif,system-ui,sans-serif; outline:none;
+  }
+  .name-row input:focus{ border-color:var(--purple); box-shadow:0 0 0 3px rgba(139,92,246,0.18); }
+
+  /* ---------- Pass phone ---------- */
+  .pass-icon{
+    width:90px; height:90px; margin:6px auto 20px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(139,92,246,0.25), transparent 70%);
+    display:flex; align-items:center; justify-content:center;
+    font-size:2.4rem;
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+  .pass-name{
+    text-align:center; font-size:1.7rem; font-weight:700; color:var(--gold);
+    text-shadow:0 0 18px rgba(242,198,117,0.4);
+    margin:2px 0 4px;
+  }
+  .pass-hint{
+    text-align:center; color:var(--ink-faint); font-size:0.82rem;
+    font-family:ui-sans-serif,system-ui,sans-serif; margin-bottom:22px;
+  }
+
+  /* ---------- Role reveal ---------- */
+  .role-card{
+    text-align:center;
+    border-radius:18px;
+    padding:30px 18px;
+    margin:16px 0 20px;
+    border:1px solid var(--panel-border);
+  }
+  .role-card.role-mafia{ background:linear-gradient(180deg, rgba(230,57,77,0.16), rgba(230,57,77,0.02)); border-color:rgba(230,57,77,0.4); }
+  .role-card.role-doctor{ background:linear-gradient(180deg, rgba(51,193,122,0.16), rgba(51,193,122,0.02)); border-color:rgba(51,193,122,0.4); }
+  .role-card.role-civilian{ background:linear-gradient(180deg, rgba(74,163,255,0.16), rgba(74,163,255,0.02)); border-color:rgba(74,163,255,0.4); }
+  .role-icon{ font-size:3rem; margin-bottom:10px; }
+  .role-name{ font-size:1.9rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+  .role-mafia .role-name{ color:var(--mafia); }
+  .role-doctor .role-name{ color:var(--doctor); }
+  .role-civilian .role-name{ color:var(--civilian); }
+  .role-desc{
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.86rem; color:var(--ink-dim); margin-top:10px; line-height:1.5;
+  }
+  .secret-note{
+    display:flex; align-items:center; gap:8px; justify-content:center;
+    color:var(--gold); font-size:0.8rem; font-weight:600; margin-bottom:20px;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+  }
+
+  /* ---------- Player select list (mafia/doctor/civilian actions + voting) ---------- */
+  .player-select{ display:flex; flex-direction:column; gap:9px; margin:18px 0 20px; max-height:44vh; overflow-y:auto; padding-right:2px; }
+  .player-opt{
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--panel-border);
+    border-radius:14px;
+    padding:13px 16px;
+    cursor:pointer;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.95rem;
+    font-weight:600;
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .player-opt .dot{
+    flex:none; width:20px; height:20px; border-radius:50%;
+    border:2px solid var(--ink-faint);
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .player-opt.selected{ border-color:var(--purple); background:rgba(139,92,246,0.14); }
+  .player-opt.selected .dot{ border-color:var(--purple); background:radial-gradient(circle, var(--purple) 45%, transparent 50%); }
+  .player-opt.role-tinted.selected{ border-color:var(--mafia); background:rgba(230,57,77,0.14); }
+  .player-opt.role-tinted.selected .dot{ border-color:var(--mafia); background:radial-gradient(circle, var(--mafia) 45%, transparent 50%); }
+  .action-doctor .player-opt.selected{ border-color:var(--doctor); background:rgba(51,193,122,0.14); }
+  .action-doctor .player-opt.selected .dot{ border-color:var(--doctor); background:radial-gradient(circle, var(--doctor) 45%, transparent 50%); }
+  .action-civilian .player-opt.selected{ border-color:var(--civilian); background:rgba(74,163,255,0.14); }
+  .action-civilian .player-opt.selected .dot{ border-color:var(--civilian); background:radial-gradient(circle, var(--civilian) 45%, transparent 50%); }
+
+  .action-header{ text-align:center; margin-bottom:6px; }
+  .action-icon{ font-size:2.2rem; margin-bottom:6px; }
+  .action-note{
+    text-align:center; font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.78rem; color:var(--ink-faint); margin-top:-10px; margin-bottom:16px;
+  }
+
+  /* ---------- Timer ring ---------- */
+  .timer-ring-wrap{ display:flex; align-items:center; justify-content:center; margin:14px 0 18px; }
+  .timer-ring{ position:relative; width:170px; height:170px; }
+  .timer-ring svg{ transform:rotate(-90deg); }
+  .timer-ring .bg-ring{ fill:none; stroke:rgba(255,255,255,0.08); stroke-width:10; }
+  .timer-ring .fg-ring{ fill:none; stroke:url(#ringGradG); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+  .timer-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .timer-center .time{ font-size:2.1rem; font-weight:700; font-variant-numeric:tabular-nums; }
+  .timer-center .cap{ font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.66rem; letter-spacing:1px; text-transform:uppercase; color:var(--ink-faint); margin-top:2px; }
+
+  /* ---------- Narrator / result cards ---------- */
+  .narrator-box{
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    padding:20px 18px;
+    margin:18px 0 22px;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:0.98rem;
+    line-height:1.6;
+    text-align:center;
+    color:var(--ink);
+  }
+  .narrator-box .line{ display:flex; align-items:flex-start; gap:10px; text-align:left; margin-bottom:8px; }
+  .narrator-box .line:last-child{ margin-bottom:0; }
+  .narrator-box .line span.ic{ flex:none; }
+
+  .result-highlight{
+    text-align:center;
+    background:linear-gradient(180deg, rgba(230,57,77,0.14), rgba(230,57,77,0.02));
+    border:1px solid rgba(230,57,77,0.4);
+    border-radius:16px;
+    padding:20px 16px;
+    margin:16px 0 20px;
+  }
+  .result-highlight.tie{
+    background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01));
+    border-color:var(--panel-border);
+  }
+  .result-highlight .who{ font-size:1.3rem; font-weight:700; }
+  .result-highlight .votes{ font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.82rem; color:var(--ink-dim); margin-top:4px; }
+  .result-highlight .verdict{ font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.9rem; color:var(--mafia); font-weight:700; margin-top:10px; }
+  .result-highlight.tie .verdict{ color:var(--ink-dim); }
+  .result-highlight .role-hidden{ font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.76rem; color:var(--ink-faint); margin-top:6px; font-style:italic; }
+
+  /* ---------- Win screens ---------- */
+  .win-banner{ text-align:center; margin:8px 0 6px; }
+  .win-icon{ font-size:3.4rem; margin-bottom:8px; }
+  .win-title{ font-size:2.1rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+  .win-title.mafia{ color:var(--mafia); text-shadow:0 0 26px rgba(230,57,77,0.55); }
+  .win-title.civilian{ color:var(--civilian); text-shadow:0 0 26px rgba(74,163,255,0.55); }
+  .win-desc{ text-align:center; color:var(--ink-dim); font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.9rem; margin:10px 0 24px; }
+
+  /* ---------- Final reveal table ---------- */
+  .reveal-table{ display:flex; flex-direction:column; gap:8px; margin:18px 0 22px; max-height:50vh; overflow-y:auto; padding-right:2px; }
+  .reveal-row{
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--panel-border);
+    border-radius:12px; padding:12px 14px;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+  }
+  .reveal-row.eliminated{ opacity:0.6; }
+  .reveal-row .rbadge{
+    flex:none; width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:1rem;
+  }
+  .reveal-row.r-mafia .rbadge{ background:rgba(230,57,77,0.2); }
+  .reveal-row.r-doctor .rbadge{ background:rgba(51,193,122,0.2); }
+  .reveal-row.r-civilian .rbadge{ background:rgba(74,163,255,0.2); }
+  .reveal-row .info{ flex:1; }
+  .reveal-row .pname{ font-weight:700; font-size:0.94rem; }
+  .reveal-row .prole{ font-size:0.76rem; color:var(--ink-faint); margin-top:1px; }
+  .reveal-row.r-mafia .prole{ color:var(--mafia); }
+  .reveal-row.r-doctor .prole{ color:var(--doctor); }
+  .reveal-row.r-civilian .prole{ color:var(--civilian); }
+  .status-tag{
+    font-size:0.64rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; flex:none;
+  }
+  .status-tag.alive{ background:rgba(51,193,122,0.2); color:var(--doctor); }
+  .status-tag.dead{ background:rgba(255,255,255,0.1); color:var(--ink-faint); }
+
+  /* ---------- Settings ---------- */
+  .settings-list{ display:flex; flex-direction:column; gap:12px; margin:16px 0 6px; }
+  select.timer-select{
+    background:rgba(255,255,255,0.04); border:1px solid var(--panel-border);
+    color:var(--ink); border-radius:10px; padding:9px 12px;
+    font-family:ui-sans-serif,system-ui,sans-serif; font-size:0.86rem;
+  }
+
+  .footer-tag{
+    text-align:center; margin-top:18px; font-size:0.74rem; color:var(--ink-faint);
+    letter-spacing:0.5px; font-family:ui-sans-serif,system-ui,sans-serif;
+  }
+
+  @media (max-width:400px){
+    .card{ padding:22px 17px; }
+    .brand-title{ font-size:2.15rem; }
+  }
+</style>
+</head>
+<body class="bg-mafia-gang">
+
+<div id="bgLayer"></div>
+<div id="bgScrim"></div>
+
+<div class="topbar">
+  <button class="icon-btn hidden" id="backBtn" onclick="handleBack()">←</button>
+  <div style="flex:1"></div>
+  <button class="icon-btn" id="gearBtn" onclick="openSettings()">⚙️</button>
+</div>
+
+<div class="stage">
+  <div class="wrap">
+    <div class="card" id="card">
+      <!-- Screens are injected here by renderScreen() -->
+    </div>
+    <p class="footer-tag" id="footerTag">🎭 Trust no one. The truth is hidden. 🎭</p>
+  </div>
+</div>
+
+<svg width="0" height="0">
+  <defs>
+    <linearGradient id="ringGradG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#e6394d"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<script>
+/* =========================================================================
+   MAFIA DOCTOR — offline pass-and-play party game
+   Single-file vanilla JS. No frameworks, no CDN, no network calls.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------
+   BACKGROUND MAP — each screen key maps to a cropped artwork + tint class
+   --------------------------------------------------------------------- */
+const BG = {
+  home:      { cls: 'bg-mafia-gang',    tint: '' },
+  setup:     { cls: 'bg-town-path',     tint: '' },
+  names:     { cls: 'bg-town-path',     tint: '' },
+  roleAssign:{ cls: 'bg-village-night', tint: '' },
+  passPhone: { cls: 'bg-village-night', tint: '' },
+  roleReveal:{ cls: 'bg-village-night', tint: '' },
+  nightBegin:{ cls: 'bg-village-night', tint: '' },
+  actionMafia:{cls: 'bg-mafia-red',     tint: 'tint-mafia' },
+  actionDoctor:{cls:'bg-village-night', tint: 'tint-doctor' },
+  actionCivilian:{cls:'bg-forest-lake', tint: 'tint-civilian' },
+  morning:   { cls: 'bg-village-sunset',tint: '' },
+  day:       { cls: 'bg-round-table',   tint: '' },
+  voting:    { cls: 'bg-round-table',   tint: '' },
+  voteResult:{ cls: 'bg-mafia-red',     tint: '' },
+  nextRound: { cls: 'bg-village-night', tint: '' },
+  mafiaWin:  { cls: 'bg-mafia-red',     tint: '' },
+  civilianWin:{cls: 'bg-village-sunset',tint: '' },
+  finalReveal:{cls: 'bg-round-table',   tint: '' },
+  settings:  { cls: 'bg-forest-lake',   tint: '' },
+};
+
+const BG_URL = {
+  'bg-mafia-gang':    "url('assets/bg-mafia-gang.jpg')",
+  'bg-round-table':   "url('assets/bg-round-table.jpg')",
+  'bg-town-path':     "url('assets/bg-town-path.jpg')",
+  'bg-forest-lake':   "url('assets/bg-forest-lake.jpg')",
+  'bg-mafia-red':     "url('assets/bg-mafia-red.jpg')",
+  'bg-village-sunset':"url('assets/bg-village-sunset.jpg')",
+  'bg-village-night': "url('assets/bg-village-night.jpg')",
+};
+
+function setBackground(key){
+  const meta = BG[key] || BG.home;
+  const layer = document.getElementById('bgLayer');
+  const scrim = document.getElementById('bgScrim');
+  layer.style.opacity = 0;
+  setTimeout(() => {
+    layer.style.backgroundImage = BG_URL[meta.cls];
+    layer.style.opacity = 1;
+    scrim.className = meta.tint;
+  }, 180);
+}
+
+/* ---------------------------------------------------------------------
+   GAME STATE
+   --------------------------------------------------------------------- */
+let game = {
+  settings: {
+    discussionTimer: 180,   // seconds
+    votingTimer: 60,        // seconds (display-only countdown)
+    allowDoctorSelfSave: true,
+    hideEliminatedRole: true,
+    preventMafiaSelfTarget: true, // toggle: OFF lets Mafia target themselves as a decoy
+  },
+  numPlayers: 6,
+  numMafia: 1,
+  doctorEnabled: true,
+  players: [],      // {id, name, role, alive}
+  round: 1,
+  order: [],        // ids queued for current loop (role reveal / night / vote)
+  orderIndex: 0,
+  pendingSelection: null, // temp selected id for current action/vote screen
+  night: {
+    mafiaTargets: {},      // mafiaId -> targetId
+    doctorSave: null,
+    previousDoctorSave: null,
+  },
+  day: { votes: {} },      // voterId -> targetId
+  lastVoteResult: null,    // {tie, eliminatedId, counts}
+  winner: null,            // 'mafia' | 'civilians'
+  discussionTimerHandle: null,
+  votingTimerHandle: null,
+  isReplay: false,
+};
+
+const TOTAL_RING = 502; // 2 * PI * 80
+
+/* ---------------------------------------------------------------------
+   SMALL HELPERS
+   --------------------------------------------------------------------- */
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function alivePlayers(){ return game.players.filter(p => p.alive); }
+function playerById(id){ return game.players.find(p => p.id === id); }
+function joinNames(ids){
+  const names = ids.map(id => playerById(id).name);
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+function setBackBtn(show, handler){
+  const btn = document.getElementById('backBtn');
+  if (show){ btn.classList.remove('hidden'); btn.onclick = handler; }
+  else { btn.classList.add('hidden'); }
+}
+function setGear(show){
+  document.getElementById('gearBtn').classList.toggle('hidden', !show);
+}
+
+let currentScreen = 'home';
+let backStack = [];
+
+function renderInto(html){
+  document.getElementById('card').innerHTML = html;
+}
+
+/* =========================================================================
+   SCREEN 1 — HOME
+   ========================================================================= */
+function showHome(){
+  currentScreen = 'home';
+  setBackground('home');
+  setBackBtn(false);
+  setGear(true);
+  renderInto(`
+    <div class="eyebrow">Pass &amp; Play · Offline</div>
+    <h1 class="brand-title">Mafia<span class="doctor-word">Doctor</span></h1>
+    <p class="tagline">Trust no one. The truth is <b>hidden</b>.</p>
+    <div style="height:26px"></div>
+    <button class="btn btn-purple" onclick="goToSetup()">▶ Start Game</button>
+    <button class="btn btn-ghost" style="margin-top:10px;" onclick="showHowToPlay()">📖 How to Play</button>
+    <div class="auto-note" style="margin-top:18px;">📡 Offline · No internet needed &nbsp;·&nbsp; 👥 4–20 players</div>
+  `);
+}
+
+function showHowToPlay(){
+  setBackground('home');
+  setBackBtn(true, showHome);
+  setGear(false);
+  renderInto(`
+    <h2 class="screen-title">📖 How to Play</h2>
+    <div class="narrator-box" style="text-align:left;">
+      <div class="line"><span class="ic">🌙</span><span><b>Night:</b> everyone closes their eyes. Mafia secretly pick a target. The Doctor secretly picks someone to protect.</span></div>
+      <div class="line"><span class="ic">☀️</span><span><b>Morning:</b> the narrator reveals only what happened — never who did it.</span></div>
+      <div class="line"><span class="ic">🗳️</span><span><b>Day:</b> everyone discusses, then secretly votes to eliminate a suspect.</span></div>
+      <div class="line"><span class="ic">🏆</span><span><b>Win:</b> Civilians win if all Mafia are eliminated. Mafia win if they equal or outnumber everyone else.</span></div>
+    </div>
+    <button class="btn btn-purple" onclick="showHome()">Got it</button>
+  `);
+}
+
+/* =========================================================================
+   SCREEN 2 — GAME SETUP
+   ========================================================================= */
+function goToSetup(){
+  currentScreen = 'setup';
+  setBackground('setup');
+  setBackBtn(true, showHome);
+  setGear(true);
+  renderSetup();
+}
+
+function clampSetup(){
+  game.numPlayers = Math.min(20, Math.max(4, game.numPlayers));
+  const maxMafia = game.doctorEnabled
+    ? Math.max(1, game.numPlayers - 2)
+    : Math.max(1, game.numPlayers - 1);
+  game.numMafia = Math.min(maxMafia, Math.max(1, game.numMafia));
+}
+
+function civilianCount(){
+  const reserved = game.numMafia + (game.doctorEnabled ? 1 : 0);
+  return Math.max(0, game.numPlayers - reserved);
+}
+
+function renderSetup(){
+  clampSetup();
+  const civ = civilianCount();
+  const valid = civ >= 0 && (game.numMafia + (game.doctorEnabled?1:0)) < game.numPlayers;
+  renderInto(`
+    <div class="eyebrow">Step 1</div>
+    <h2 class="screen-title">Game Setup</h2>
+
+    <div class="field-block" style="margin-top:20px;">
+      <span class="field-label">Number of Players</span>
+      <div class="stepper">
+        <button onclick="changePlayers(-1)">−</button>
+        <div class="val">${game.numPlayers}</div>
+        <button onclick="changePlayers(1)">+</button>
+      </div>
+    </div>
+
+    <div class="field-block">
+      <span class="field-label">Number of Mafia</span>
+      <div class="stepper">
+        <button onclick="changeMafia(-1)">−</button>
+        <div class="val">${game.numMafia}</div>
+        <button onclick="changeMafia(1)">+</button>
+      </div>
+    </div>
+
+    <div class="field-block">
+      <span class="field-label">Doctor Role</span>
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Enable Doctor</div>
+          <div class="sub">Can save one player each night</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" ${game.doctorEnabled ? 'checked':''} onchange="toggleDoctor(this.checked)">
+          <span class="track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field-block">
+      <span class="field-label">Civilians</span>
+      <div class="stepper" style="opacity:0.7;">
+        <div class="val" style="width:100%; text-align:center;">${civ} <span style="font-size:0.7rem; color:var(--ink-faint); font-family:ui-sans-serif,system-ui,sans-serif;">(auto)</span></div>
+      </div>
+    </div>
+
+    <p class="config-error">${valid ? '' : 'Not enough players for this setup — reduce Mafia or add players.'}</p>
+
+    <button class="btn btn-purple" ${valid ? '' : 'disabled'} onclick="goToNames()">Continue ›</button>
+  `);
+}
+
+function changePlayers(d){ game.numPlayers += d; renderSetup(); }
+function changeMafia(d){ game.numMafia += d; renderSetup(); }
+function toggleDoctor(val){ game.doctorEnabled = val; renderSetup(); }
+
+/* =========================================================================
+   SCREEN 3 — ENTER PLAYER NAMES
+   ========================================================================= */
+function goToNames(){
+  currentScreen = 'names';
+  setBackground('names');
+  setBackBtn(true, goToSetup);
+  // seed players array with blanks if not already sized correctly
+  if (game.players.length !== game.numPlayers){
+    game.players = Array.from({length: game.numPlayers}, (_, i) => ({
+      id: i, name: '', role: null, alive: true
+    }));
+  }
+  renderNames();
+}
+
+function renderNames(){
+  const rows = game.players.map((p, i) => `
+    <div class="name-row">
+      <div class="idx">${i + 1}</div>
+      <input type="text" id="nameField${i}" placeholder="Player ${i + 1} name" maxlength="16"
+             value="${escapeHtml(p.name)}" autocomplete="off">
+    </div>
+  `).join('');
+
+  renderInto(`
+    <div class="eyebrow">Step 2</div>
+    <h2 class="screen-title">Enter Player Names</h2>
+    <p class="screen-sub">Tap each field and type a name, then continue.</p>
+    <div class="name-list">${rows}</div>
+    <p class="config-error" id="nameError"></p>
+    <button class="btn btn-purple" onclick="confirmNames()">Continue ›</button>
+  `);
+}
+
+function confirmNames(){
+  const errEl = document.getElementById('nameError');
+  const names = [];
+  for (let i = 0; i < game.players.length; i++){
+    const val = document.getElementById(`nameField${i}`).value.trim();
+    if (!val){ errEl.textContent = `Player ${i + 1} needs a name.`; return; }
+    if (names.some(n => n.toLowerCase() === val.toLowerCase())){
+      errEl.textContent = `"${val}" is used twice — names must be unique.`;
+      return;
+    }
+    names.push(val);
+    game.players[i].name = val;
+  }
+  errEl.textContent = '';
+  assignRoles();
+}
+
+/* =========================================================================
+   SCREEN 4 — ROLE ASSIGNMENT (shuffle transition)
+   ========================================================================= */
+function assignRoles(){
+  const roles = [];
+  for (let i = 0; i < game.numMafia; i++) roles.push('mafia');
+  if (game.doctorEnabled) roles.push('doctor');
+  while (roles.length < game.numPlayers) roles.push('civilian');
+  shuffle(roles);
+
+  game.players.forEach((p, i) => {
+    p.role = roles[i];
+    p.alive = true;
+    p.skipUsed = false;        // one-time "skip attack" / "decline to save" per game
+    p.selfTargetUsed = false;  // one-time Mafia self-attack per game
+  });
+  game.round = 1;
+  game.night.previousDoctorSave = null;
+
+  currentScreen = 'roleAssign';
+  setBackground('roleAssign');
+  setBackBtn(false);
+  setGear(false);
+  renderInto(`
+    <div class="eyebrow">Step 3</div>
+    <h2 class="screen-title">Role Assignment</h2>
+    <div style="text-align:center; margin:30px 0;">
+      <div style="font-size:3rem; animation:pulse 1.1s ease-in-out infinite;">🎭</div>
+      <p class="screen-sub" style="margin-top:14px;">Roles are being assigned…</p>
+    </div>
+    <button class="btn btn-purple" id="roleContinueBtn" disabled onclick="startRoleRevealLoop()">Continue ›</button>
+  `);
+  setTimeout(() => {
+    const btn = document.getElementById('roleContinueBtn');
+    if (btn) btn.disabled = false;
+  }, 1100);
+}
+
+/* =========================================================================
+   PASS-THE-PHONE (generic, reused by role reveal / night actions / voting)
+   Every player gets an identical pass-phone + private-screen flow so the
+   number of taps/screens never hints at anyone's role.
+   ========================================================================= */
+let _passPhoneCallback = null;
+function showPassPhone(playerId, onConfirm, subtitle){
+  const p = playerById(playerId);
+  _passPhoneCallback = onConfirm;
+  currentScreen = 'passPhone';
+  setBackground('passPhone');
+  setBackBtn(false);
+  setGear(false);
+  renderInto(`
+    <div class="eyebrow">Pass the Phone</div>
+    <div class="pass-icon">📱</div>
+    <p class="pass-name">${escapeHtml(p.name)}</p>
+    <p class="pass-hint">${subtitle || 'Make sure only you can see the screen'}</p>
+    <button class="btn btn-purple" onclick="confirmPassPhone()">I'm ${escapeHtml(p.name)} — Continue</button>
+  `);
+}
+function confirmPassPhone(){
+  const cb = _passPhoneCallback;
+  _passPhoneCallback = null;
+  if (cb) cb();
+}
+
+/* =========================================================================
+   SCREEN 5 — ROLE REVEAL LOOP
+   ========================================================================= */
+function startRoleRevealLoop(){
+  game.order = game.players.map(p => p.id);
+  game.orderIndex = 0;
+  nextRoleReveal();
+}
+
+function nextRoleReveal(){
+  if (game.orderIndex >= game.order.length){
+    prepareNight();
+    return;
+  }
+  const id = game.order[game.orderIndex];
+  showPassPhone(id, () => showRoleCard(id), 'Confirm it\'s your turn, then reveal your role');
+}
+
+const ROLE_META = {
+  mafia:    { icon: '🔴', label: 'Mafia',    desc: 'Each night, secretly choose a player to attack. Work with any other Mafia — but don\'t get caught.' },
+  doctor:   { icon: '💚', label: 'Doctor',   desc: 'Each night, secretly choose a player to protect. You may save yourself.' },
+  civilian: { icon: '🔵', label: 'Civilian', desc: 'You have no special power. Use the day to observe, question, and vote wisely.' },
+};
+
+function showRoleCard(id){
+  const p = playerById(id);
+  const meta = ROLE_META[p.role];
+  currentScreen = 'roleReveal';
+  setBackground('roleReveal');
+  renderInto(`
+    <div class="eyebrow">Your Role</div>
+    <p class="screen-sub" style="margin-bottom:0;">Hey ${escapeHtml(p.name)} 👋</p>
+    <div class="role-card role-${p.role}">
+      <div class="role-icon">${meta.icon}</div>
+      <div class="role-name">${meta.label}</div>
+      <div class="role-desc">${meta.desc}</div>
+    </div>
+    <div class="secret-note">🔒 Remember your role. Don't tell anyone.</div>
+    <button class="btn btn-purple" onclick="advanceRoleReveal()">Next Player ›</button>
+  `);
+}
+
+function advanceRoleReveal(){
+  game.orderIndex++;
+  nextRoleReveal();
+}
+
+/* =========================================================================
+   SCREEN 6 — NIGHT BEGINS
+   ========================================================================= */
+function prepareNight(){
+  game.night.mafiaTargets = {};
+  game.night.doctorSave = null;
+  game.order = shuffle(alivePlayers().map(p => p.id)); // shuffled per round — no fixed turn pattern to read into
+  game.orderIndex = 0;
+
+  currentScreen = 'nightBegin';
+  setBackground('nightBegin');
+  setBackBtn(false);
+  setGear(false);
+  renderInto(`
+    <div class="eyebrow">Night ${game.round}</div>
+    <h2 class="screen-title">🌙 Night Has Begun</h2>
+    <p class="screen-sub">Everyone close your eyes. Pass the phone only when it's your turn.</p>
+    <div class="narrator-box" style="text-align:left; margin-top:20px;">
+      <div class="line"><span class="ic">🔴</span><span><b>Mafia</b> — open your eyes, choose a target.</span></div>
+      <div class="line"><span class="ic">💚</span><span><b>Doctor</b> — open your eyes, choose who to save.</span></div>
+      <div class="line"><span class="ic">🔵</span><span><b>Civilians</b> — open your eyes, make a choice (no effect).</span></div>
+    </div>
+    <p class="action-note">Each player gets the same number of taps — no one can guess a role from the screen flow.</p>
+    <button class="btn btn-purple" onclick="nextNightAction()">Continue ›</button>
+  `);
+}
+
+/* =========================================================================
+   SCREEN 7/8/9 — NIGHT ACTION LOOP (Mafia / Doctor / Civilian)
+   ========================================================================= */
+function nextNightAction(){
+  if (game.orderIndex >= game.order.length){
+    resolveNight();
+    return;
+  }
+  const id = game.order[game.orderIndex];
+  showPassPhone(id, () => showNightAction(id), 'It\'s your turn for the night phase');
+}
+
+function showNightAction(id){
+  const p = playerById(id);
+  game.pendingSelection = null;
+
+  let candidates = alivePlayers().map(pl => pl.id);
+  let bgKey, iconEmoji, title, note, listClass, btnClass;
+
+  if (p.role === 'mafia'){
+    const selfAllowedNow = !game.settings.preventMafiaSelfTarget && !p.selfTargetUsed;
+    if (!selfAllowedNow){
+      candidates = candidates.filter(cid => cid !== id); // cannot target self
+    }
+    bgKey = 'actionMafia'; iconEmoji = '🔴'; title = 'You are Mafia';
+    if (game.settings.preventMafiaSelfTarget){
+      note = 'Choose a player to attack. You cannot choose yourself.';
+    } else if (p.selfTargetUsed){
+      note = 'Choose a player to attack. You\'ve already used your one self-target this game.';
+    } else {
+      note = 'Choose a player to attack. You may target yourself once this game as a decoy — it never eliminates you either way.';
+    }
+    listClass = 'action-mafia role-tinted'; btnClass = 'btn-mafia';
+  } else if (p.role === 'doctor'){
+    let pool = candidates;
+    if (!game.settings.allowDoctorSelfSave) pool = pool.filter(cid => cid !== id);
+    // The "no consecutive same target" rule never applies to self-saves —
+    // the Doctor can save themselves any number of times, back to back.
+    if (game.night.previousDoctorSave !== null && game.night.previousDoctorSave !== id && pool.length > 1){
+      pool = pool.filter(cid => cid !== game.night.previousDoctorSave);
+    }
+    candidates = pool;
+    bgKey = 'actionDoctor'; iconEmoji = '💚'; title = 'You are the Doctor';
+    note = game.settings.allowDoctorSelfSave ? 'Choose a player to save. You can save yourself any number of times.' : 'Choose a player to save.';
+    listClass = 'action-doctor'; btnClass = 'btn-doctor';
+  } else {
+    bgKey = 'actionCivilian'; iconEmoji = '🔵'; title = 'Night Action';
+    note = 'Choose a player. (This has no effect — it just keeps the game fair.)';
+    listClass = 'action-civilian'; btnClass = 'btn-civilian';
+  }
+
+  currentScreen = 'nightAction';
+  setBackground(bgKey);
+
+  const options = candidates.map(cid => `
+    <div class="player-opt" data-id="${cid}" onclick="selectOption(this, ${cid})">
+      <div class="dot"></div><div>${escapeHtml(playerById(cid).name)}</div>
+    </div>
+  `).join('');
+
+  const canSkip = (p.role === 'mafia' || p.role === 'doctor') && !p.skipUsed;
+  const skipLabel = p.role === 'mafia' ? 'Skip — attack no one tonight (once per game)' : 'Decline — save no one tonight (once per game)';
+  const skipBtn = canSkip
+    ? `<button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="skipNightAction(${id})">${skipLabel}</button>`
+    : '';
+
+  renderInto(`
+    <div class="action-header">
+      <div class="action-icon">${iconEmoji}</div>
+      <h2 class="screen-title">${title}</h2>
+    </div>
+    <p class="action-note">${note}</p>
+    <div class="player-select ${listClass}">${options}</div>
+    ${skipBtn}
+    <button class="btn ${btnClass}" id="nightSubmitBtn" disabled onclick="submitNightAction(${id})">Submit</button>
+  `);
+}
+
+function selectOption(el, id){
+  el.parentElement.querySelectorAll('.player-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  game.pendingSelection = id;
+  const btn = document.getElementById('nightSubmitBtn') || document.getElementById('voteSubmitBtn');
+  if (btn) btn.disabled = false;
+}
+
+function submitNightAction(actorId){
+  const p = playerById(actorId);
+  const target = game.pendingSelection;
+  if (target === null || target === undefined) return;
+
+  if (p.role === 'mafia'){
+    game.night.mafiaTargets[actorId] = target;
+    if (target === actorId) p.selfTargetUsed = true; // consumed their one-time self-target
+  } else if (p.role === 'doctor'){
+    game.night.doctorSave = target;
+    // self-save is unlimited — no flag to consume
+  }
+  // civilian: no-op
+
+  game.orderIndex++;
+  nextNightAction();
+}
+
+function skipNightAction(actorId){
+  const p = playerById(actorId);
+  if (p.skipUsed) return; // already used their one-time skip — ignore stray calls
+  p.skipUsed = true;
+  if (p.role === 'mafia'){
+    delete game.night.mafiaTargets[actorId]; // explicitly no attack from this player
+  } else if (p.role === 'doctor'){
+    game.night.doctorSave = null; // explicitly no save
+  }
+  game.orderIndex++;
+  nextNightAction();
+}
+
+/* =========================================================================
+   SCREEN 10 — MORNING / NARRATOR RESULT
+   ========================================================================= */
+function resolveNight(){
+  // Track "previous save" as whatever happened this night (including a decline),
+  // so a decline correctly clears the consecutive-save restriction for next time.
+  game.night.previousDoctorSave = game.night.doctorSave;
+
+  const attackedSet = shuffle([...new Set(Object.values(game.night.mafiaTargets))]);
+  const savedId = game.night.doctorSave;
+  const notSaved = shuffle(attackedSet.filter(id => id !== savedId));
+  const savedAndTargeted = attackedSet.includes(savedId) ? [savedId] : [];
+
+  const lines = [];
+  if (notSaved.length > 0){
+    lines.push(`<div class="line"><span class="ic">🗡️</span><span>${joinNames(notSaved)} ${notSaved.length > 1 ? 'were' : 'was'} attacked last night.</span></div>`);
+  }
+  if (savedAndTargeted.length > 0){
+    lines.push(`<div class="line"><span class="ic">💚</span><span>${joinNames(savedAndTargeted)} was targeted but saved by the Doctor.</span></div>`);
+  }
+  if (lines.length === 0){
+    lines.push(`<div class="line"><span class="ic">🌤️</span><span>Nobody was attacked last night.</span></div>`);
+  }
+
+  currentScreen = 'morning';
+  setBackground('morning');
+  renderInto(`
+    <div class="eyebrow">Morning · Round ${game.round}</div>
+    <h2 class="screen-title">☀️ Morning Has Arrived</h2>
+    <div class="narrator-box">${lines.join('')}</div>
+    <p class="action-note">No one is eliminated by a night attack. Discuss and decide together.</p>
+    <button class="btn btn-purple" onclick="startDay()">Continue ›</button>
+  `);
+}
+
+/* =========================================================================
+   SCREEN 11 — DAY DISCUSSION + TIMER
+   ========================================================================= */
+function startDay(){
+  currentScreen = 'day';
+  setBackground('day');
+  renderDayScreen();
+
+  clearInterval(game.discussionTimerHandle);
+  let secondsLeft = game.settings.discussionTimer;
+  updateDayTimerDisplay(secondsLeft);
+  game.discussionTimerHandle = setInterval(() => {
+    secondsLeft--;
+    updateDayTimerDisplay(Math.max(0, secondsLeft));
+    if (secondsLeft <= 0) clearInterval(game.discussionTimerHandle);
+  }, 1000);
+}
+
+function renderDayScreen(){
+  renderInto(`
+    <div class="eyebrow">Day ${game.round}</div>
+    <h2 class="screen-title">🗣️ Discuss</h2>
+    <p class="screen-sub">Talk it out. Who seems suspicious?</p>
+    <div class="timer-ring-wrap">
+      <div class="timer-ring">
+        <svg width="170" height="170" viewBox="0 0 170 170">
+          <circle class="bg-ring" cx="85" cy="85" r="80"></circle>
+          <circle class="fg-ring" id="dayRing" cx="85" cy="85" r="80" stroke-dasharray="${TOTAL_RING}" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="timer-center">
+          <div class="time" id="dayTimeLeft">--:--</div>
+          <div class="cap">Discussion</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-gold" onclick="startVoting()">🗳️ Start Voting</button>
+  `);
+}
+
+function updateDayTimerDisplay(s){
+  const el = document.getElementById('dayTimeLeft');
+  if (!el) return;
+  const mm = String(Math.floor(s / 60)).padStart(2,'0');
+  const ss = String(s % 60).padStart(2,'0');
+  el.textContent = `${mm}:${ss}`;
+  const fraction = s / game.settings.discussionTimer;
+  document.getElementById('dayRing').style.strokeDashoffset = TOTAL_RING * (1 - fraction);
+}
+
+/* =========================================================================
+   SCREEN 12 — GROUP VOTE (single combined decision, no pass-phone needed)
+   The group discusses and votes out loud together; whoever is holding the
+   phone taps the one name the group agreed on and confirms it once.
+   ========================================================================= */
+let voteCountdownHandle = null;
+
+function startVoting(){
+  clearInterval(game.discussionTimerHandle);
+  game.pendingSelection = null;
+  currentScreen = 'voting';
+  setBackground('voting');
+  showGroupVoteScreen();
+}
+
+function showGroupVoteScreen(){
+  game.pendingSelection = null;
+  const candidates = alivePlayers().map(p => p.id);
+
+  const options = candidates.map(cid => `
+    <div class="player-opt" data-id="${cid}" onclick="selectOption(this, ${cid})">
+      <div class="dot"></div><div>${escapeHtml(playerById(cid).name)}</div>
+    </div>
+  `).join('');
+
+  renderInto(`
+    <div class="eyebrow">Day ${game.round} · Group Vote</div>
+    <h2 class="screen-title">🗳️ Cast the Group's Vote</h2>
+    <p class="screen-sub">Discuss out loud and agree together. One person then selects the name everyone chose.</p>
+    <p class="action-note" id="voteTimerNote" style="margin-top:8px;"></p>
+    <div class="player-select">${options}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="submitGroupVote(null)">Skip — no elimination</button>
+    <button class="btn btn-purple" id="voteSubmitBtn" disabled onclick="submitGroupVote(game.pendingSelection)">Confirm Vote</button>
+  `);
+
+  clearInterval(voteCountdownHandle);
+  let vs = game.settings.votingTimer;
+  updateVoteTimerNote(vs);
+  voteCountdownHandle = setInterval(() => {
+    vs--;
+    updateVoteTimerNote(Math.max(0, vs));
+    if (vs <= 0) clearInterval(voteCountdownHandle);
+  }, 1000);
+}
+
+function updateVoteTimerNote(s){
+  const el = document.getElementById('voteTimerNote');
+  if (!el) return;
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  el.textContent = s > 0 ? `⏱ ${mm}:${ss} to decide` : `⏱ Time's up — confirm when ready`;
+}
+
+function submitGroupVote(id){
+  clearInterval(voteCountdownHandle);
+  showVoteResultDirect(id);
+}
+
+/* =========================================================================
+   SCREEN 13 — VOTE RESULT / ELIMINATION
+   ========================================================================= */
+function showVoteResultDirect(id){
+  currentScreen = 'voteResult';
+  setBackground('voteResult');
+
+  if (id === null || id === undefined){
+    game.lastVoteResult = { tie: true, eliminatedId: null };
+    renderInto(`
+      <div class="eyebrow">Vote Result</div>
+      <div class="result-highlight tie">
+        <div class="who">🤝 No Elimination</div>
+        <div class="votes">The group chose not to vote anyone out.</div>
+        <div class="verdict">The game continues.</div>
+      </div>
+      <button class="btn btn-purple" onclick="afterVoteResult()">Continue ›</button>
+    `);
+  } else {
+    const elim = playerById(id);
+    elim.alive = false;
+    game.lastVoteResult = { tie: false, eliminatedId: id };
+    renderInto(`
+      <div class="eyebrow">Vote Result</div>
+      <div class="result-highlight">
+        <div class="who">${escapeHtml(elim.name)}</div>
+        <div class="votes">Voted out by group decision</div>
+        <div class="verdict">☠️ Eliminated</div>
+        ${game.settings.hideEliminatedRole ? '<div class="role-hidden">Their role remains hidden until the final reveal.</div>' : `<div class="role-hidden">They were the ${ROLE_META[elim.role].label}.</div>`}
+      </div>
+      <button class="btn btn-purple" onclick="afterVoteResult()">Continue ›</button>
+    `);
+  }
+}
+
+function afterVoteResult(){
+  checkWinConditions();
+}
+
+/* =========================================================================
+   WIN CONDITION CHECK + NEXT ROUND
+   ========================================================================= */
+function checkWinConditions(){
+  const alive = alivePlayers();
+  const aliveMafia = alive.filter(p => p.role === 'mafia').length;
+  const aliveNonMafia = alive.length - aliveMafia;
+
+  if (aliveMafia === 0){
+    game.winner = 'civilians';
+    showCivilianWin();
+  } else if (aliveMafia >= aliveNonMafia){
+    game.winner = 'mafia';
+    showMafiaWin();
+  } else {
+    game.round++;
+    showNextRound();
+  }
+}
+
+function showNextRound(){
+  currentScreen = 'nextRound';
+  setBackground('nextRound');
+  renderInto(`
+    <div class="eyebrow">Round Complete</div>
+    <h2 class="screen-title">🌘 The Game Continues</h2>
+    <p class="screen-sub">Night ${game.round} is about to begin.</p>
+    <div style="text-align:center; font-size:3rem; margin:26px 0;">🌘</div>
+    <button class="btn btn-purple" onclick="prepareNight()">Start Night ${game.round} ›</button>
+  `);
+}
+
+/* =========================================================================
+   WIN SCREENS
+   ========================================================================= */
+function showMafiaWin(){
+  currentScreen = 'mafiaWin';
+  setBackground('mafiaWin');
+  setBackBtn(false);
+  renderInto(`
+    <div class="win-banner">
+      <div class="win-icon">🔴</div>
+      <div class="win-title mafia">Mafia Wins</div>
+      <p class="win-desc">The Mafia have taken control of the town.</p>
+    </div>
+    <button class="btn btn-mafia" onclick="showFinalReveal()">View Final Reveal</button>
+  `);
+}
+
+function showCivilianWin(){
+  currentScreen = 'civilianWin';
+  setBackground('civilianWin');
+  setBackBtn(false);
+  renderInto(`
+    <div class="win-banner">
+      <div class="win-icon">🔵</div>
+      <div class="win-title civilian">Civilians Win</div>
+      <p class="win-desc">Every last Mafia member has been caught.</p>
+    </div>
+    <button class="btn btn-civilian" onclick="showFinalReveal()">View Final Reveal</button>
+  `);
+}
+
+/* =========================================================================
+   SCREEN — FINAL REVEAL
+   ========================================================================= */
+function showFinalReveal(){
+  currentScreen = 'finalReveal';
+  setBackground('finalReveal');
+  setGear(false);
+
+  const rows = game.players.map(p => {
+    const meta = ROLE_META[p.role];
+    return `
+      <div class="reveal-row r-${p.role} ${p.alive ? '' : 'eliminated'}">
+        <div class="rbadge">${meta.icon}</div>
+        <div class="info">
+          <div class="pname">${escapeHtml(p.name)}</div>
+          <div class="prole">${meta.label}</div>
+        </div>
+        <div class="status-tag ${p.alive ? 'alive':'dead'}">${p.alive ? 'Alive':'Eliminated'}</div>
+      </div>
+    `;
+  }).join('');
+
+  renderInto(`
+    <div class="eyebrow">Final Reveal</div>
+    <h2 class="screen-title">🎭 The Truth Revealed</h2>
+    <p class="screen-sub">Winner: <b style="color:${game.winner === 'mafia' ? 'var(--mafia)' : 'var(--civilian)'}">${game.winner === 'mafia' ? 'Mafia' : 'Civilians'}</b></p>
+    <div class="reveal-table">${rows}</div>
+    <div class="btn-row">
+      <button class="btn btn-purple" onclick="playAgainSameGroup()">🔁 Play Again</button>
+      <button class="btn btn-ghost" onclick="newGame()">🏠 New Game</button>
+    </div>
+  `);
+}
+
+function playAgainSameGroup(){
+  game.isReplay = true;
+  assignRoles();
+}
+
+function newGame(){
+  game = {
+    settings: game.settings, // keep house rules
+    numPlayers: 6, numMafia: 1, doctorEnabled: true,
+    players: [], round: 1, order: [], orderIndex: 0, pendingSelection: null,
+    night: { mafiaTargets: {}, doctorSave: null, previousDoctorSave: null },
+    day: { votes: {} }, lastVoteResult: null, winner: null,
+    discussionTimerHandle: null, votingTimerHandle: null, isReplay: false,
+  };
+  showHome();
+}
+
+/* =========================================================================
+   SETTINGS
+   ========================================================================= */
+let settingsReturnScreen = null;
+function openSettings(){
+  settingsReturnScreen = currentScreen;
+  currentScreen = 'settings';
+  setBackground('settings');
+  setBackBtn(true, closeSettings);
+  setGear(false);
+  renderInto(`
+    <div class="eyebrow">Settings</div>
+    <h2 class="screen-title">House Rules</h2>
+    <div class="settings-list">
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Discussion Timer</div>
+          <div class="sub">Length of the Day discussion</div>
+        </div>
+        <select class="timer-select" id="setDiscussion">
+          <option value="60" ${game.settings.discussionTimer===60?'selected':''}>1 min</option>
+          <option value="120" ${game.settings.discussionTimer===120?'selected':''}>2 min</option>
+          <option value="180" ${game.settings.discussionTimer===180?'selected':''}>3 min</option>
+          <option value="300" ${game.settings.discussionTimer===300?'selected':''}>5 min</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Voting Timer</div>
+          <div class="sub">Time the group gets to decide before confirming</div>
+        </div>
+        <select class="timer-select" id="setVoting">
+          <option value="30" ${game.settings.votingTimer===30?'selected':''}>30 sec</option>
+          <option value="60" ${game.settings.votingTimer===60?'selected':''}>1 min</option>
+          <option value="120" ${game.settings.votingTimer===120?'selected':''}>2 min</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Doctor Can Save Self</div>
+          <div class="sub">Allow the Doctor to protect themselves</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setSelfSave" ${game.settings.allowDoctorSelfSave?'checked':''}>
+          <span class="track"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Hide Eliminated Role</div>
+          <div class="sub">Keep it secret until the final reveal</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setHideRole" ${game.settings.hideEliminatedRole?'checked':''}>
+          <span class="track"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Allow Mafia Self-Target</div>
+          <div class="sub">Mafia can attack themselves as a decoy — safe, since night attacks never eliminate anyone</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setSelfTarget" ${!game.settings.preventMafiaSelfTarget ? 'checked' : ''}>
+          <span class="track"></span>
+        </label>
+      </div>
+    </div>
+    <button class="btn btn-purple" onclick="saveSettings()">Save</button>
+  `);
+}
+
+function saveSettings(){
+  game.settings.discussionTimer = Number(document.getElementById('setDiscussion').value);
+  game.settings.votingTimer = Number(document.getElementById('setVoting').value);
+  game.settings.allowDoctorSelfSave = document.getElementById('setSelfSave').checked;
+  game.settings.hideEliminatedRole = document.getElementById('setHideRole').checked;
+  game.settings.preventMafiaSelfTarget = !document.getElementById('setSelfTarget').checked;
+  closeSettings();
+}
+
+function closeSettings(){
+  if (settingsReturnScreen === 'home' || !settingsReturnScreen){ showHome(); }
+  else if (settingsReturnScreen === 'setup'){ goToSetup(); }
+  else { showHome(); } // settings only reachable pre-game, so this is the safe fallback
+}
+
+/* =========================================================================
+   BACK BUTTON DISPATCH (only enabled on safe pre-game screens)
+   ========================================================================= */
+function handleBack(){
+  // individual screens wire their own back target via setBackBtn(); this
+  // function exists as a stable reference but each call site overrides onclick.
+}
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+document.addEventListener('DOMContentLoaded', showHome);
+</script>
+</body>
+</html>
