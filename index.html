@@ -569,6 +569,7 @@ let game = {
     allowDoctorSelfSave: true,
     hideEliminatedRole: true,
     preventMafiaSelfTarget: true, // toggle: OFF lets Mafia target themselves as a decoy
+    mafiaWinsOnCivilianLoss: true, // strict mode: one wrongly-voted-out Civilian ends the game for Mafia
   },
   numPlayers: 6,
   numMafia: 1,
@@ -1245,10 +1246,17 @@ function checkWinConditions(){
   const aliveMafia = alive.filter(p => p.role === 'mafia').length;
   const aliveNonMafia = alive.length - aliveMafia;
 
+  // Strict mode: since night attacks never eliminate anyone, the town's only
+  // real risk is a wrong vote — so a single wrongly-eliminated Civilian ends
+  // the game in Mafia's favor. Keeps the vote genuinely high-stakes even in
+  // small games where Mafia would otherwise almost never be able to catch up.
+  const aCivilianWasEliminated = game.settings.mafiaWinsOnCivilianLoss &&
+    game.players.some(p => p.role === 'civilian' && !p.alive);
+
   if (aliveMafia === 0){
     game.winner = 'civilians';
     showCivilianWin();
-  } else if (aliveMafia >= aliveNonMafia){
+  } else if (aCivilianWasEliminated || aliveMafia >= aliveNonMafia){
     game.winner = 'mafia';
     showMafiaWin();
   } else {
@@ -1418,6 +1426,16 @@ function openSettings(){
           <span class="track"></span>
         </label>
       </div>
+      <div class="toggle-row">
+        <div>
+          <div class="lbl">Strict Mode: One Wrong Vote Ends It</div>
+          <div class="sub">Mafia instantly wins if the town ever votes out a Civilian by mistake — keeps small games winnable for Mafia</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setStrictLoss" ${game.settings.mafiaWinsOnCivilianLoss ? 'checked' : ''}>
+          <span class="track"></span>
+        </label>
+      </div>
     </div>
     <button class="btn btn-purple" onclick="saveSettings()">Save</button>
   `);
@@ -1429,6 +1447,7 @@ function saveSettings(){
   game.settings.allowDoctorSelfSave = document.getElementById('setSelfSave').checked;
   game.settings.hideEliminatedRole = document.getElementById('setHideRole').checked;
   game.settings.preventMafiaSelfTarget = !document.getElementById('setSelfTarget').checked;
+  game.settings.mafiaWinsOnCivilianLoss = document.getElementById('setStrictLoss').checked;
   closeSettings();
 }
 
